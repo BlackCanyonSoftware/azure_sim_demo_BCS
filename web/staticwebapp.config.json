@@ -1,0 +1,16 @@
+{
+  "routes": [
+    { "route": "/api/*", "allowedRoles": ["operator"] },
+    { "route": "/.auth/login/github", "statusCode": 404 },
+    { "route": "/.auth/login/x", "statusCode": 404 }
+  ],
+  "responseOverrides": {
+    "401": { "statusCode": 302, "redirect": "/.auth/login/aad?post_login_redirect_uri=/" }
+  },
+  "platform": { "apiRuntime": "python:3.11" },
+  "globalHeaders": {
+    "Content-Security-Policy": "default-src 'self'; img-src 'self' https://*.blob.core.windows.net data:; media-src https://*.blob.core.windows.net; style-src 'self'; script-src 'self'",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "same-origin"
+  }
+}

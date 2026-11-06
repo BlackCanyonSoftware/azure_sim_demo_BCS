@@ -1,0 +1,13 @@
+[Unit]
+Description=Azure sim demo worker (takes drop-test jobs off the Service Bus queue, runs them with MuJoCo)
+After=network-online.target
+
+[Service]
+EnvironmentFile=%h/.config/azure-sim-demo/worker.env
+ExecStart=%h/.local/share/azure-sim-demo/venv/bin/python %h/azure-sim-demo/worker/worker.py
+Restart=on-failure
+RestartSec=30
+Nice=10
+
+[Install]
+WantedBy=default.target

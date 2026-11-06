@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sim Drop Lab</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Sim Drop Lab</h1>
+    <p class="sub">Pick NVIDIA SimReady objects, drop them, and watch MuJoCo physics run on a home GPU, queued through Azure.</p>
+    <div id="me" class="me"></div>
+  </header>
+
+  <main>
+    <section class="card" id="worker">
+      <h2>Worker</h2>
+      <p id="worker-state" class="muted">Checking…</p>
+    </section>
+
+    <section class="card">
+      <h2>New drop test</h2>
+      <form id="job">
+        <div id="objects"></div>
+        <button type="button" id="add" class="ghost">Add an object</button>
+        <label class="row">Seconds to simulate <input id="seconds" type="number" min="0.5" max="10" step="0.5" value="3"></label>
+        <button type="submit" id="send">Queue it</button>
+        <p id="form-msg" class="muted" role="status"></p>
+      </form>
+    </section>
+
+    <section class="card" id="view" hidden>
+      <h2>Result <span id="view-id" class="muted"></span></h2>
+      <p id="view-state"></p>
+      <img id="view-gif" alt="Animation of the drop test" hidden>
+      <ul id="view-bodies"></ul>
+      <p id="view-links"></p>
+    </section>
+
+    <section class="card">
+      <h2>Recent jobs</h2>
+      <table><thead><tr><th>Job</th><th>State</th><th>Objects</th><th>Submitted</th></tr></thead><tbody id="recent"></tbody></table>
+    </section>
+
+    <section class="card how">
+      <h2>How it works</h2>
+      <ol>
+        <li>This page and its API are an <b>Azure Static Web App</b>. You signed in with Microsoft Entra ID, and only the invited <b>operator</b> role reaches the API.</li>
+        <li>The API puts the job on an <b>Azure Service Bus</b> queue with a key that can only send.</li>
+        <li>A worker on the home PC holds a key that can only listen. It connects out to the queue (nothing at home is open to the internet), runs the job with MuJoCo on its GPU, and uploads the results.</li>
+        <li>Results go to <b>Azure Blob Storage</b>, which allows no public reads. The API hands this page links that open one file for 30 minutes.</li>
+        <li><b>Application Insights</b> traces both sides, and a <b>budget</b> emails before the credit runs low. The whole Azure side is one Bicep file.</li>
+      </ol>
+      <p class="muted">Contains NVIDIA SimReady assets (CC-BY-4.0).</p>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

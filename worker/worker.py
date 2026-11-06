@@ -136,6 +136,7 @@ def run_job(raw: dict, results: Results, sim) -> None:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.getLogger("azure").setLevel(logging.WARNING)  # the Azure libraries log every HTTP request at INFO
     if os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING"):
         from azure.monitor.opentelemetry import configure_azure_monitor  # noqa: PLC0415
         configure_azure_monitor(logger_name="simdemo")

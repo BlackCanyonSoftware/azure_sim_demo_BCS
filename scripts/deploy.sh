@@ -57,7 +57,8 @@ worker() {
   say "worker access: write-only link from a stored access policy, listen-only queue key"
   key=$("$AZ" storage account keys list -g "$RG" -n "$storage" --query "[0].value" -o tsv)
   policy_end=$(date -u -d "+180 days" +%Y-%m-%dT%H:%MZ)
-  if "$AZ" storage container policy show -c results -n worker --account-name "$storage" --account-key "$key" -o none 2>/dev/null; then
+  # ('policy show' succeeds even when the policy is missing, so look in the list instead)
+  if "$AZ" storage container policy list -c results --account-name "$storage" --account-key "$key" --query "keys(@)" -o tsv | grep -qx worker; then
     "$AZ" storage container policy update -c results -n worker --permissions acw --expiry "$policy_end" --account-name "$storage" --account-key "$key" -o none
   else
     "$AZ" storage container policy create -c results -n worker --permissions acw --expiry "$policy_end" --account-name "$storage" --account-key "$key" -o none

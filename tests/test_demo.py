@@ -1,6 +1,5 @@
 """The demo's own rules and the worker, without Azure: jobs are checked the same way on both sides, and the worker really runs a drop test
 through the sim tool and 'uploads' to a stand-in for the results container."""
-import base64
 import json
 import sys
 from datetime import datetime, timedelta, timezone
@@ -9,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "api"))
+sys.path.insert(0, str(ROOT / "app"))
 sys.path.insert(0, str(ROOT / "worker"))
 import jobs  # noqa: E402
 import worker  # noqa: E402
@@ -40,10 +39,37 @@ def test_a_good_job_keeps_only_what_it_needs():
     assert job == {"kind": "drop", "objects": [{"asset": BOTTLE, "at": [0.1, 0.0, 0.5], "rotate_z": 40.0}], "seconds": 2.0}
 
 
-def test_the_signed_in_user_is_read_from_the_platform_header():
-    header = base64.b64encode(json.dumps({"userDetails": "me@school.edu", "userRoles": ["operator"]}).encode()).decode()
-    assert jobs.principal(header)["userDetails"] == "me@school.edu"
-    assert jobs.principal(None) == {} and jobs.principal("not base64!") == {}
+OID = "0f8fad5b-d9cb-469f-a165-70867728950e"
+SIGNED_IN = {"X-MS-CLIENT-PRINCIPAL-ID": OID.upper(), "X-MS-CLIENT-PRINCIPAL-IDP": "aad", "X-MS-CLIENT-PRINCIPAL-NAME": "me@school.edu"}
+
+
+def test_the_signed_in_user_is_read_from_the_platform_headers():
+    assert jobs.who(SIGNED_IN, {OID}) == {"signed_in": True, "name": "me@school.edu", "operator": True}
+    assert jobs.who(SIGNED_IN, set())["operator"] is False
+    assert jobs.who({}, {OID}) == {"signed_in": False, "name": "", "operator": False}
+    assert jobs.who({**SIGNED_IN, "X-MS-CLIENT-PRINCIPAL-IDP": "github"}, {OID})["operator"] is False
+
+
+@pytest.fixture
+def web(monkeypatch):
+    pytest.importorskip("flask")
+    monkeypatch.setenv("OPERATORS", OID)
+    monkeypatch.delenv("APPLICATIONINSIGHTS_CONNECTION_STRING", raising=False)
+    sys.modules.pop("app", None)
+    import app  # noqa: PLC0415
+    return app.app.test_client()
+
+
+def test_only_operators_reach_the_api_and_every_reply_has_the_safety_headers(web):
+    assert web.get("/api/worker").status_code == 403
+    assert web.get("/api/jobs", headers={**SIGNED_IN, "X-MS-CLIENT-PRINCIPAL-ID": "someone-else"}).status_code == 403
+    assert web.post("/api/jobs", json={"objects": []}, headers=SIGNED_IN).status_code == 400  # past the guard, refused by the rules
+    assert web.get("/api/jobs/not-an-id", headers=SIGNED_IN).status_code == 404
+    assert web.get("/api/me", headers=SIGNED_IN).get_json()["operator"] is True
+    page = web.get("/")
+    assert page.status_code == 200 and b"Sim Drop Lab" in page.data
+    assert "script-src 'self'" in page.headers["Content-Security-Policy"] and page.headers["X-Content-Type-Options"] == "nosniff"
+    assert web.get("/../jobs.py").status_code == 404 and web.get("/jobs.py").status_code == 404  # only static/ is served
 
 
 def test_the_worker_counts_as_online_only_with_a_recent_heartbeat():

@@ -46,10 +46,10 @@
     <section class="card how">
       <h2>How it works</h2>
       <ol>
-        <li>This page and its API are an <b>Azure Static Web App</b>. You signed in with Microsoft Entra ID, and only the invited <b>operator</b> role reaches the API.</li>
-        <li>The API puts the job on an <b>Azure Service Bus</b> queue with a key that can only send.</li>
+        <li>This page and its API are one small Python web app on <b>Azure App Service</b> (free tier). App Service's built-in sign-in sends you to <b>Microsoft Entra ID</b> first; only accounts on the operator list can use the API.</li>
+        <li>The web app holds no keys. It signs in to Azure as its own <b>managed identity</b>, whose roles let it only send to the <b>Azure Service Bus</b> queue and read and write the results container.</li>
         <li>A worker on the home PC holds a key that can only listen. It connects out to the queue (nothing at home is open to the internet), runs the job with MuJoCo on its GPU, and uploads the results.</li>
-        <li>Results go to <b>Azure Blob Storage</b>, which allows no public reads. The API hands this page links that open one file for 30 minutes.</li>
+        <li>Results go to <b>Azure Blob Storage</b>, which allows no public reads. The web app hands this page links that open one file for 30 minutes, signed with a key Azure lends to its identity.</li>
         <li><b>Application Insights</b> traces both sides, and a <b>budget</b> emails before the credit runs low. The whole Azure side is one Bicep file.</li>
       </ol>
       <p class="muted">Contains NVIDIA SimReady assets (CC-BY-4.0).</p>

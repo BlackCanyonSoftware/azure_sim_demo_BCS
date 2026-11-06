@@ -4,17 +4,18 @@
 #   scripts/deploy.sh preview   what Azure would create or change (az deployment group what-if); makes only the empty resource group
 #   scripts/deploy.sh infra     create/update the Azure resources from infra/main.bicep
 #   scripts/deploy.sh worker    write the worker's settings (listen-only key, write-only link) and start it on this PC
-#   scripts/deploy.sh web       publish the page and its API to the Static Web App
-#   scripts/deploy.sh invite    invite the signed-in account as "operator" (prints a link to open once)
-#   scripts/deploy.sh all       infra, worker, web, invite
+#   scripts/deploy.sh web       upload app/ (the page and its API) to the App Service web app
+#   scripts/deploy.sh all       infra, worker, web
 #
-# Settings (environment): RG (default rg-simdemo), LOCATION (default eastus2), PREFIX (default simdemo), BUDGET_USD (default 5).
+# The signed-in account becomes the only operator (its Entra object id goes into the web app's OPERATORS setting).
+# Settings (environment): RG (default rg-simdemo), LOCATION (default westus: Azure for Students allows canadacentral,
+# francecentral, westus, mexicocentral and northcentralus), PREFIX (default simdemo), BUDGET_USD (default 5).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 DEMO=$PWD
 AZ=${AZ:-$(command -v az || echo "$HOME/.local/bin/az")}
 RG=${RG:-rg-simdemo}
-LOCATION=${LOCATION:-eastus2}
+LOCATION=${LOCATION:-westus}
 PREFIX=${PREFIX:-simdemo}
 BUDGET_USD=${BUDGET_USD:-5}
 CONF=$HOME/.config/azure-sim-demo
@@ -23,10 +24,18 @@ VENV=$HOME/.local/share/azure-sim-demo/venv
 say() { printf '\n== %s\n' "$*"; }
 out() { "$AZ" deployment group show -g "$RG" -n main --query "properties.outputs.$1.value" -o tsv; }
 params() {
-  printf '%s\n' "prefix=$PREFIX" "budgetUsd=$BUDGET_USD" "budgetEmail=$("$AZ" account show --query user.name -o tsv)" "budgetStart=$(date -u +%Y-%m-01)"
+  printf '%s\n' "prefix=$PREFIX" "location=$LOCATION" "operators=$("$AZ" ad signed-in-user show --query id -o tsv)" "budgetUsd=$BUDGET_USD" "budgetEmail=$("$AZ" account show --query user.name -o tsv)" "budgetStart=$(date -u +%Y-%m-01)"
+}
+
+providers() {
+  say "resource providers (a one-time switch per subscription; costs nothing)"
+  for p in Microsoft.Web Microsoft.ServiceBus Microsoft.Storage Microsoft.Insights Microsoft.OperationalInsights Microsoft.Consumption; do
+    "$AZ" provider register -n "$p" --wait -o none
+  done
 }
 
 preview() {
+  providers
   say "resource group $RG in $LOCATION"
   "$AZ" group show -n "$RG" -o none 2>/dev/null || echo "(it does not exist yet: 'infra' creates it)"
   "$AZ" group create -n "$RG" -l "$LOCATION" --tags project=azure-sim-demo -o none
@@ -34,15 +43,12 @@ preview() {
 }
 
 infra() {
-  say "resource providers"
-  for p in Microsoft.Web Microsoft.ServiceBus Microsoft.Storage Microsoft.Insights Microsoft.OperationalInsights Microsoft.Consumption; do
-    "$AZ" provider register -n "$p" --wait -o none
-  done
+  providers
   say "resource group $RG in $LOCATION"
   "$AZ" group create -n "$RG" -l "$LOCATION" --tags project=azure-sim-demo -o none
   say "deploying infra/main.bicep (a few minutes)"
   "$AZ" deployment group create -g "$RG" -n main -f infra/main.bicep --parameters $(params) \
-    --query "properties.outputs.{web:webUrl.value, storage:storageName.value, bus:busName.value}" -o table
+    --query "properties.outputs.{web:webUrl.value, signIn:signInAppId.value, storage:storageName.value, bus:busName.value}" -o table
 }
 
 worker() {
@@ -77,22 +83,16 @@ worker() {
 }
 
 web() {
-  local name token
+  local name zip
   name=$(out webName)
-  token=$("$AZ" staticwebapp secrets list -n "$name" -g "$RG" --query properties.apiKey -o tsv)
-  say "publishing web/ and api/ to $name (the Static Web Apps CLI, in a throwaway Node container)"
-  docker run --rm -e SWA_CLI_DEPLOYMENT_TOKEN="$token" -v "$DEMO:/src" -w /src node:22-bookworm \
-    npx -y @azure/static-web-apps-cli@2.0.2 deploy ./web --api-location ./api --api-language python --api-version 3.11 --env production
-  echo "page: $(out webUrl)"
-}
-
-invite() {
-  local name host who
-  name=$(out webName); host=$(out webUrl); host=${host#https://}
-  who=$("$AZ" account show --query user.name -o tsv)
-  say "inviting $who as operator (the link works once, for 24 hours)"
-  "$AZ" staticwebapp users invite -n "$name" -g "$RG" --authentication-provider aad --user-details "$who" --role operator \
-    --domain "$host" --invitation-expiration-in-hours 24 --query invitationUrl -o tsv
+  zip=$(mktemp --suffix=.zip)
+  say "uploading app/ to $name (App Service installs requirements.txt itself; the first time takes a few minutes)"
+  ( cd app && python3 -I -c 'import pathlib, sys, zipfile
+with zipfile.ZipFile(sys.argv[1], "w", zipfile.ZIP_DEFLATED) as z:
+    [z.write(p) for p in sorted(pathlib.Path(".").rglob("*")) if p.is_file() and "__pycache__" not in p.parts]' "$zip" )
+  "$AZ" webapp deploy -g "$RG" -n "$name" --src-path "$zip" --type zip --track-status true -o none
+  rm -f "$zip"
+  echo "page: $(out webUrl)   (sign in with your Microsoft account; the first visit wakes the free app up, give it a minute)"
 }
 
 case "${1:-}" in
@@ -100,7 +100,6 @@ case "${1:-}" in
   infra) infra ;;
   worker) worker ;;
   web) web ;;
-  invite) invite ;;
-  all) infra; worker; web; invite ;;
+  all) infra; worker; web ;;
   *) sed -n '2,13p' "$0"; exit 2 ;;
 esac

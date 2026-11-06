@@ -1,8 +1,6 @@
-"""What a job may be, shared by the API and the worker (the worker has its own copy of the rules and checks again: it never trusts the queue).
+"""What a job may be, shared by the web app and the worker (the worker checks every job again: it never trusts the queue).
 
 A job is a drop test: up to 4 SimReady objects placed above the floor, simulated for a few seconds."""
-import base64
-import json
 import re
 from datetime import datetime
 
@@ -44,14 +42,14 @@ def check(body) -> dict:
     return {"kind": "drop", "objects": clean, "seconds": seconds}
 
 
-def principal(header: str | None) -> dict:
-    """The signed-in user, from the header the Static Web App adds (it strips any copy a browser sends)."""
-    if not header:
-        return {}
-    try:
-        return json.loads(base64.b64decode(header))
-    except (ValueError, TypeError):
-        return {}
+def who(headers, operators: set[str]) -> dict:
+    """The signed-in user, from the headers App Service authentication adds after an Entra ID sign-in (it removes any copy a
+    browser sends), and whether their Entra object id is on the operator list."""
+    oid = (headers.get("X-MS-CLIENT-PRINCIPAL-ID") or "").strip().lower()
+    idp = (headers.get("X-MS-CLIENT-PRINCIPAL-IDP") or "").strip().lower()
+    name = headers.get("X-MS-CLIENT-PRINCIPAL-NAME") or ""
+    signed_in = bool(oid) and idp == "aad"
+    return {"signed_in": signed_in, "name": name if signed_in else "", "operator": signed_in and oid in operators}
 
 
 def summary(status: dict) -> dict:

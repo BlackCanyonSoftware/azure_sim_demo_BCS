@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent / "api"))
+sys.path.insert(0, str(HERE.parent / "app"))
 import jobs  # noqa: E402 - the same rules as the API
 
 SIM = Path(os.environ.get("CANAI_SIM", Path.home() / "ai-suite" / "modules" / "hermes_plugins" / "general" / "can-ai-sim" / "sim.py"))

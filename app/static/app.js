@@ -4,7 +4,11 @@ let known = ["bottle_laboratory_a02"];
 let watching = null;
 
 async function api(path, opts = {}) {
-  const res = await fetch(`/api/${path}`, { headers: { "Content-Type": "application/json" }, ...opts });
+  let res;
+  try {
+    res = await fetch(`/api/${path}`, { headers: { "Content-Type": "application/json" }, redirect: "manual", ...opts });
+  } catch { throw new Error("Can't reach the API. Reload the page to sign in again."); }
+  if (res.type === "opaqueredirect") throw new Error("Your sign-in has run out. Reload the page to sign in again.");
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || `${res.status} ${res.statusText}`);
   return body;
@@ -20,11 +24,11 @@ function make(tag, props = {}, kids = []) {
 // ---------------------------------------------------------------- who is signed in
 async function me() {
   try {
-    const { clientPrincipal } = await (await fetch("/.auth/me")).json();
+    const who = await api("me");
     const box = $("me");
-    if (!clientPrincipal) { box.append(make("a", { href: "/.auth/login/aad?post_login_redirect_uri=/", textContent: "Sign in" })); return; }
-    const op = clientPrincipal.userRoles.includes("operator");
-    box.append(`${clientPrincipal.userDetails}${op ? "" : " (not an operator)"} · `, make("a", { href: "/.auth/logout", textContent: "Sign out" }));
+    if (!who.signed_in) { box.append(make("a", { href: "/.auth/login/aad?post_login_redirect_uri=/", textContent: "Sign in" })); return; }
+    box.append(`${who.name}${who.operator ? "" : " (not an operator)"} · `,
+      make("a", { href: "/.auth/logout?post_logout_redirect_uri=/", textContent: "Sign out" }));
   } catch { /* the page still works without it */ }
 }
 

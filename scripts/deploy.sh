@@ -13,6 +13,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 DEMO=$PWD
+# The owner's Azure sign-in lives in ~/.azure-owner (~/.azure stays empty so Can-AI's terminal never has it).
+export AZURE_CONFIG_DIR=${AZURE_CONFIG_DIR:-$HOME/.azure-owner}
 AZ=${AZ:-$(command -v az || echo "$HOME/.local/bin/az")}
 RG=${RG:-rg-simdemo}
 LOCATION=${LOCATION:-westus}

@@ -34,7 +34,7 @@ because the expensive part, the GPU, stays at home. Nothing at home is open to t
 
 ## Running it
 
-Needs the Azure CLI signed in (`az login`) and, on the worker PC, Can-AI's sim tool (`~/ai-suite/scripts/canai-sim-setup`).
+Needs the Azure CLI signed in as you, kept in `~/.azure-owner` (`az-owner login`, or `AZURE_CONFIG_DIR=~/.azure-owner az login`) and, on the worker PC, Can-AI's sim tool (`~/ai-suite/scripts/canai-sim-setup`).
 
 ```bash
 scripts/deploy.sh preview   # what would be created; changes nothing except registering providers and an empty resource group

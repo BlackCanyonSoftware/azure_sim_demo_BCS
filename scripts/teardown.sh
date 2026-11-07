@@ -2,6 +2,8 @@
 # teardown.sh: stop the worker and delete everything the demo made in Azure (the whole resource group). Asks first.
 # The code stays; scripts/deploy.sh all builds it again.
 set -euo pipefail
+# The owner's Azure sign-in lives in ~/.azure-owner (~/.azure stays empty so Can-AI's terminal never has it).
+export AZURE_CONFIG_DIR=${AZURE_CONFIG_DIR:-$HOME/.azure-owner}
 AZ=${AZ:-$(command -v az || echo "$HOME/.local/bin/az")}
 RG=${RG:-rg-simdemo}
 echo "This deletes resource group $RG and everything in it:"

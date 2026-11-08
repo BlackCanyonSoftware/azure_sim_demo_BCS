@@ -297,3 +297,16 @@ def test_rule_e_bad_flush_pair_has_no_courtyard():
 def test_rule_e_bad_enclosed_text_open_edge():
     got = validate.check(_e(E_BAD_EDGE), E_PROMPT)
     assert any("reaches the outline" in p for p in got), got
+
+
+
+def test_the_3d_result_has_its_own_full_width_panel_under_both_columns(client):
+    """Owner, 2026-11-07: the render sat in the narrow right column below all the options, out of view in the recording."""
+    page = client.get("/").get_data().decode()
+    results = page[page.index('id="results"'):]
+    assert 'id="job-list"' in results and page.index('id="results"') > page.index('id="run-job"')  # after the button, outside the options panel
+    assert "hidden" in page[page.index('id="results"') - 40:page.index('id="results"') + 40]  # shown only once there is a job
+    css = (Path(__file__).resolve().parents[1] / "app" / "static" / "style.css").read_text()
+    assert ".results { grid-column: 1 / -1; }" in css and "max-width: 900px" in css
+    js = (Path(__file__).resolve().parents[1] / "app" / "static" / "app.js").read_text()
+    assert js.count('$("results").hidden = false') == 2  # for a job and for a job that could not be queued

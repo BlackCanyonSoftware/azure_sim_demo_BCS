@@ -46,5 +46,9 @@ button:disabled { opacity: .5; cursor: default; }
 .job-state { font-weight: 600; }
 .job-state.bad { color: var(--bad); }
 .job-list img { width: 100%; border-radius: 6px; border: 1px solid var(--line); }
+/* The 3D picture is the point of the tool: its own full-width row under both columns, the picture large and centred */
+.results { grid-column: 1 / -1; }
+.results .job-list li { justify-content: flex-start; }
+.results .job-list img { max-width: 900px; margin: 6px auto 0; display: block; }
 .job-list a { color: var(--accent); }
 .foot { text-align: center; color: var(--muted); font-size: 12px; padding: 16px; }

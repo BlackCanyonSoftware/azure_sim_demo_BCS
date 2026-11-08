@@ -129,10 +129,12 @@ $("run-job").addEventListener("click", async () => {
       body: JSON.stringify({ kind: "massing", input: { project: lastAnswer.answer.title || "", option: opt } }),
     });
     const item = el("li", { id: `job-${job.id}` }, el("span", { class: "job-id" }, job.id), el("span", { class: "job-state" }, "queued"));
+    $("results").hidden = false;  // the 3D result has its own panel, shown once there is a job
     $("job-list").prepend(item);
     watch(job.id, item);
   } catch (e) {
     // the error belongs in the jobs panel (ask-state is the assistant's), so the job panel shows it as its own entry
+    $("results").hidden = false;
     $("job-list").prepend(el("li", { class: "job-error" }, el("span", { class: "job-state bad" }, "job not queued"), el("span", {}, e.message)));
   } finally {
     $("run-job").disabled = false;

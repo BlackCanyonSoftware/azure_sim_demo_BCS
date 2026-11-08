@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Studio Assistant</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="bar">
+    <div class="brand"><span class="mark"></span><span id="app-name">Studio Assistant</span></div>
+    <div class="who"><span id="who">Checking sign-in…</span> <a id="signout" href="/.auth/logout?post_logout_redirect_uri=/" hidden>Sign out</a></div>
+  </header>
+
+  <main class="layout">
+    <section class="panel ask">
+      <h2>Describe the project</h2>
+      <form id="ask-form">
+        <label for="prompt" class="hint">Plain words are fine — the assistant writes the structured brief</label>
+        <textarea id="prompt" rows="5" maxlength="4000" placeholder="For example: a two-storey design studio of about 140 m² around a courtyard"></textarea>
+        <div class="row">
+          <button id="ask" type="submit">Turn this into a brief</button>
+          <span id="ask-state" class="state" role="status"></span>
+        </div>
+      </form>
+      <article id="answer" class="answer" hidden></article>
+    </section>
+
+    <section class="panel jobs">
+      <h2>Massing options</h2>
+      <p class="hint">Pick an option and the 3D job runs on the worker: FreeCAD builds the model, Blender renders a view.</p>
+      <ul id="option-list" class="option-list"></ul>
+      <div class="row">
+        <button id="run-job" type="button" disabled>Build 3D model of the selected option</button>
+      </div>
+      <ul id="job-list" class="job-list"></ul>
+    </section>
+  </main>
+
+  <footer class="foot">Signed in with Entra ID · AI by Azure OpenAI · 3D jobs on the KPrime worker (FreeCAD + Blender)</footer>
+</body>
+</html>

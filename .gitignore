@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+app.zip
+*.pem
+.env
+.pytest_cache/
+server.log
+docs/NOTES.md
+docs/evidence/
+docs/validator-table-output.txt
+docs/ab-test-share-walls.md

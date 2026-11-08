@@ -1,0 +1,25 @@
+flowchart LR
+  staff["Staff (browser)"]
+  kprime["KPrime worker (FreeCAD + Blender)"]
+  subgraph azure["Azure: rg-canai-lab"]
+    studio_soru43_logs["Log Analytics<br/><small>studio-soru43-logs</small>"]
+    studio_soru43_insights["Application Insights<br/><small>studio-soru43-insights</small>"]
+    studio_web_soru43_plan["App Service plan<br/><small>studio-web-soru43-plan · F1</small>"]
+    studio_web_soru43["Web app<br/><small>studio-web-soru43</small>"]
+    studio_bus_soru43["Service Bus queue<br/><small>studio-bus-soru43 · Basic</small>"]
+    studiosoru43files["Storage<br/><small>studiosoru43files · Standard_LRS</small>"]
+    studio_ai_soru43["Azure OpenAI<br/><small>studio-ai-soru43 · S0</small>"]
+  end
+  studio_web_soru43 -->|sends jobs| studio_bus_soru43
+  studio_web_soru43 -->|signs read links, reads blobs| studiosoru43files
+  studio_web_soru43 -->|calls the model| studio_ai_soru43
+  studio_soru43_insights -->|stores logs| studio_soru43_logs
+  studio_web_soru43 -->|runs on| studio_web_soru43_plan
+  studio_web_soru43 -->|telemetry| studio_soru43_insights
+  staff -->|HTTPS, Entra sign-in| studio_web_soru43
+  staff -->|fetches result files by the read links| studiosoru43files
+  entraID["Microsoft Entra ID"]
+  studio_web_soru43 -->|asks Entra to sign users in| entraID
+  entraID -->|signed-in identity header| studio_web_soru43
+  kprime -->|takes jobs| studio_bus_soru43
+  kprime -->|uploads results| studiosoru43files

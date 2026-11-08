@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+pydantic
+python-dotenv
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-httpx
+pytest
+pygments

@@ -4,7 +4,7 @@ After=network-online.target
 
 [Service]
 EnvironmentFile=%h/.config/azure-sim-demo/worker.env
-ExecStart=%h/.local/share/azure-sim-demo/venv/bin/python %h/azure-sim-demo/worker/worker.py
+ExecStart=%h/.local/share/azure-sim-demo/venv/bin/python %h/azure-sim-demo/sim-drop-lab/worker/worker.py
 Restart=on-failure
 RestartSec=30
 Nice=10
